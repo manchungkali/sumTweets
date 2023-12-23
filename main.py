@@ -40,6 +40,7 @@ def sendEmail(message:str,receiver:str=os.environ['MAILTO'],subject:str=''):
         smtp.sendmail(sender, receiver, msg.as_string()) #发送
         print('邮件发送成功')
     except smtplib.SMTPException:
+        print(smtplib.SMTPException)
         print('邮件发送失败')
     smtp.quit() # 结束
 
@@ -62,18 +63,29 @@ def sumTweets(lang = '中文',length:int = 10000, model='openai/gpt-3.5-turbo-11
         rss_url = f'https://{nitter}/{user}/rss'
         if hasattr(ssl, '_create_unverified_context'):
             ssl._create_default_https_context = ssl._create_unverified_context
-        
+        # print(rss_url)
         feed = parse(rss_url)
+        # print(feed)
         df = pd.json_normalize(feed.entries)
+        # print(df)
+        print(feed.entries)
+
         df['timestamp'] = df['published'].apply(lambda x: pd.Timestamp(x).timestamp())
+        # print(df['timestamp'])
         if not 'i/lists' in user:
             df = df.reindex(index=df.index[::-1])
         compareTime = datetime.utcnow() - timedelta(minutes=minutes)
-        compareTime = pd.Timestamp(compareTime).timestamp()
-        df = df[df['timestamp'] > compareTime]
+        compareTimes = pd.Timestamp(compareTime).timestamp()
+
+        df = df[df['timestamp'] > compareTimes]
+        # print(df['timestamp'])
+        # print(compareTimes)
+        # print(df.iterrows())
+        # print(len(df))
         if len(df) == 0:
             continue
         for k, v in df.iterrows():
+            # print(1)
             pattern = r'<a\s+.*?href="([^"]*https://%s/[^/]+/status/[^"]*)"[^>]*>'%nitter.replace(".",r'\.')
             matches = re.findall(pattern, v['summary'])
             if len(matches) > 0:
@@ -108,5 +120,33 @@ def sumTweets(lang = '中文',length:int = 10000, model='openai/gpt-3.5-turbo-11
         sendEmail(result)
     return result
 
+def stmp_test():
+    message = 'hi'
+    subject = 'test'
+    sender = os.environ['MAIL']  # 发送的邮箱
+    receiver = os.environ['MAILTO']
+    receiver = receiver.split(';')  # 要接受的邮箱（注:测试中发送其他邮箱会提示错误）
+    smtpserver = os.environ['SMTP']
+    username = os.environ['MAIL']  # 你的邮箱账号
+    password = os.environ['MAILPWD']  # 你的邮箱密码
+    msg = MIMEText(message, 'html', 'utf-8')  # 中文需参数‘utf-8'，单字节字符不需要
+    print(msg)
+    msg['Subject'] = Header(subject, 'utf-8')  # 邮件主题
+    msg['from'] = sender  # 自己的邮件地址
+    smtp = smtplib.SMTP()
+    print(smtp)
+    try:
+        res = smtp.connect(smtpserver)  # 链接
+        print(res)
+        res1 = smtp.login(username, password)  # 登陆
+        print(res1)
+        smtp.sendmail(sender, receiver, msg.as_string())  # 发送
+        print('邮件发送成功')
+    except smtplib.SMTPException as e:
+        print(e)
+        print('邮件发送失败')
+    smtp.quit()  # 结束
+
 if __name__=='__main__':
     sumTweets(mail=True,render=True)
+    # stmp_test()
