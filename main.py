@@ -11,6 +11,7 @@ from email.header import Header
 from markdown import markdown
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
+import ssl
 
 def sendEmail(message:str,receiver:str=os.environ['MAILTO'],subject:str=''):
     '''
@@ -59,6 +60,9 @@ def sumTweets(lang = '中文',length:int = 10000, model='openai/gpt-3.5-turbo-11
     result = ''
     for user in users.split(';'):
         rss_url = f'https://{nitter}/{user}/rss'
+        if hasattr(ssl, '_create_unverified_context'):
+            ssl._create_default_https_context = ssl._create_unverified_context
+        
         feed = parse(rss_url)
         df = pd.json_normalize(feed.entries)
         df['timestamp'] = df['published'].apply(lambda x: pd.Timestamp(x).timestamp())
